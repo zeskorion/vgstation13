@@ -12,7 +12,7 @@ Damage Converter
 Bonus
 	Slowly converts brute/fire damage to toxin.
 
-//////////////////////////////////////
+////////////////////////////////////// 
 */
 
 /datum/symptom/damage_converter
