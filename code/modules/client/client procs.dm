@@ -382,6 +382,10 @@
 		if(src in clients) //Did we log out before we reached this part of the function?
 			nanomanager.send_resources(src)
 
+// Sends resources to the client asynchronously.
+/client/proc/preload_resource(var/rsc)
+	Export("##action=preload_rsc", rsc)
+
 
 /client/proc/send_html_resources()
 	if(adv_camera && minimapinit)

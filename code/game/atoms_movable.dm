@@ -55,6 +55,8 @@
 
 	var/ignore_blocking = 0
 
+	var/last_explosion_push = 0
+
 /atom/movable/New()
 	. = ..()
 	if((flags & HEAR) && !ismob(src))
@@ -68,6 +70,10 @@
 	on_moved = new("owner"=src)
 
 /atom/movable/Destroy()
+	var/turf/T = loc
+	if (opacity && istype(T))
+		T.reconsider_lights()
+
 	if(materials)
 		returnToPool(materials)
 		materials = null
@@ -175,7 +181,7 @@
 		return
 
 	//We always split up movements into cardinals for issues with diagonal movements.
-	if(loc != NewLoc)
+	if(Dir || (loc != NewLoc))
 		if (!(Dir & (Dir - 1))) //Cardinal move
 			. = ..()
 		else //Diagonal move, split it into cardinal moves
@@ -370,10 +376,7 @@
 
 /atom/movable/proc/recycle(var/datum/materials/rec)
 	if(materials)
-		for(var/matid in materials.storage)
-			var/datum/material/material = materials.getMaterial(matid)
-			rec.addAmount(matid, materials.storage[matid] / material.cc_per_sheet) //the recycler's material is read as 1 = 1 sheet
-			materials.storage[matid] = 0
+		rec.addFrom(materials, TRUE)
 		return 1
 	return 0
 
@@ -983,8 +986,8 @@
 		return 0
 	var/list/params_list = params2list(params)
 	if(clamp)
-		pixel_x = Clamp(base_pixx + text2num(params_list["icon-x"]) - WORLD_ICON_SIZE/2, -WORLD_ICON_SIZE/2, WORLD_ICON_SIZE/2)
-		pixel_y = Clamp(base_pixy + text2num(params_list["icon-y"]) - WORLD_ICON_SIZE/2, -WORLD_ICON_SIZE/2, WORLD_ICON_SIZE/2)
+		pixel_x = clamp(base_pixx + text2num(params_list["icon-x"]) - WORLD_ICON_SIZE/2, -WORLD_ICON_SIZE/2, WORLD_ICON_SIZE/2)
+		pixel_y = clamp(base_pixy + text2num(params_list["icon-y"]) - WORLD_ICON_SIZE/2, -WORLD_ICON_SIZE/2, WORLD_ICON_SIZE/2)
 	else
 		pixel_x = base_pixx + text2num(params_list["icon-x"]) - WORLD_ICON_SIZE/2
 		pixel_y = base_pixy + text2num(params_list["icon-y"]) - WORLD_ICON_SIZE/2

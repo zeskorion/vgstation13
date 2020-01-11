@@ -48,6 +48,9 @@
 	origin_tech = Tc_MATERIALS + "=1;" + Tc_ENGINEERING + "=1"
 	attack_verb = list("bashes", "batters", "bludgeons", "whacks")
 
+/obj/item/weapon/wrench/is_wrench(mob/user)
+	return TRUE
+
 /obj/item/weapon/wrench/attackby(obj/item/weapon/W, mob/user)
 	..()
 	if(user.is_in_modules(src))
@@ -230,6 +233,7 @@
 	sharpness_flags = INSULATED_EDGE | HOT_EDGE // A gas flame is pretty insulated, is it?
 	heat_production = 3800
 	source_temperature = TEMPERATURE_WELDER
+	light_color = LIGHT_COLOR_FIRE
 
 	//Cost to make in the autolathe
 	starting_materials = list(MAT_IRON = 70, MAT_GLASS = 30)
@@ -420,6 +424,8 @@
 		src.welding = 1
 		if (remove_fuel(1))
 			to_chat(usr, "<span class='notice'>\The [src] switches on.</span>")
+			playsound(src,pick('sound/items/lighter1.ogg','sound/items/lighter2.ogg'),40,1)
+			set_light(2)
 			src.force = 15
 			src.damtype = "fire"
 			update_icon()
@@ -431,6 +437,8 @@
 	//Otherwise
 	else
 		to_chat(usr, "<span class='notice'>\The [src] switches off.</span>")
+		playsound(src,'sound/effects/zzzt.ogg',20,1)
+		set_light(0)
 		src.force = 3
 		src.damtype = "brute"
 		update_icon()
@@ -454,6 +462,8 @@
 		if (remove_fuel(1))
 			if(user && istype(user))
 				to_chat(user, "<span class='notice'>You switch the [src] on.</span>")
+			playsound(src,pick('sound/items/lighter1.ogg','sound/items/lighter2.ogg'),40,1)
+			set_light(2)
 			src.force = 15
 			src.damtype = "fire"
 			update_icon()
@@ -468,6 +478,8 @@
 			to_chat(usr, "<span class='notice'>You switch the [src] off.</span>")
 		else
 			visible_message("<span class='notice'>\The [src] shuts off!</span>")
+		playsound(src,'sound/effects/zzzt.ogg',20,1)
+		set_light(0)
 		src.force = 3
 		src.damtype = "brute"
 		update_icon()

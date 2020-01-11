@@ -459,11 +459,10 @@
 	if(slot_w_uniform in obscured)
 		dat += "<BR><font color=grey><B>Uniform:</B> Obscured by [wear_suit]</font>"
 	else
+		dat += "<BR><B>Belt:</B> <A href='?src=\ref[src];item=[slot_belt]'>[makeStrippingButton(belt)]</A>"
 		dat += "<BR><B>Uniform:</B> <A href='?src=\ref[src];item=[slot_w_uniform]'>[makeStrippingButton(w_uniform)]</A>"
 		if(w_uniform)
 			dat += "<BR>[HTMLTAB]&#8627;<B>Suit Sensors:</B> <A href='?src=\ref[src];sensors=1'>Set</A>"
-	if(w_uniform)
-		dat += "<BR>[HTMLTAB]&#8627;<B>Belt:</B> <A href='?src=\ref[src];item=[slot_belt]'>[makeStrippingButton(belt)]</A>"
 		if(pickpocket)
 			dat += "<BR>[HTMLTAB]&#8627;<B>Pockets:</B> <A href='?src=\ref[src];pockets=left'>[(l_store && !(src.l_store.abstract)) ? l_store : "<font color=grey>Left (Empty)</font>"]</A>"
 			dat += " <A href='?src=\ref[src];pockets=right'>[(r_store && !(src.r_store.abstract)) ? r_store : "<font color=grey>Right (Empty)</font>"]</A>"
@@ -643,7 +642,7 @@
 	if(E)
 		. += E.eyeprot
 
-	return Clamp(., -2, 2)
+	return clamp(., -2, 2)
 
 
 /mob/living/carbon/human/IsAdvancedToolUser()
@@ -653,6 +652,18 @@
 	var/obj/item/clothing/gloves/G = gloves
 	if(istype(G))
 		return G.pickpocket
+
+//Don't forget to change this too if you universalize the gloves
+/mob/living/carbon/human/proc/place_in_glove_storage(var/obj/item/I)
+	var/obj/item/clothing/gloves/black/thief/storage/S = gloves
+	if(!I) //How did you do this
+		return 0
+	if(istype(S))
+		if(S.hold.can_be_inserted(I, 1)) //There is no check in handling item insertion
+			S.hold.handle_item_insertion(I, 1)
+		else
+			put_in_hands(I)
+
 
 /mob/living/carbon/human/abiotic(var/full_body = 0)
 	for(var/obj/item/I in held_items)
@@ -1930,9 +1941,23 @@ mob/living/carbon/human/isincrit()
 			stuttering = max(0,stuttering-rand(8,10))
 			jitteriness = max(0,jitteriness-rand(8,10))
 			hallucination = max(0,hallucination-rand(8,10))
-			confused = max(0,confused-rand(8,10))
+			remove_confused(rand(8, 10))
 			drowsyness = max(0, drowsyness-rand(8,10))
 			pain_shock_stage = max(0, pain_shock_stage-rand(3,5))
 
 /mob/living/carbon/human/can_be_infected()
 	return 1
+
+//this method handles user getting attacked with an emag - the original logic was in human_defense.dm,
+//but it's better that it belongs to human.dm 
+/mob/living/carbon/human/emag_act(var/mob/attacker, var/datum/organ/external/affecting, var/obj/item/weapon/card/emag)
+	var/hit_area = affecting.display_name
+	if(!(affecting.status & ORGAN_ROBOT))
+		to_chat(attacker, "<span class='warning'>That limb isn't robotic.</span>")
+		return FALSE
+	if(affecting.sabotaged)
+		to_chat(attacker, "<span class='warning'>\The [src]'s [hit_area] is already sabotaged!</span>")
+	else
+		to_chat(attacker, "<span class='warning'>You sneakily slide [emag] into the dataport on \the [src]'s [hit_area] and short out the safeties.</span>")
+		affecting.sabotaged = TRUE
+	return FALSE

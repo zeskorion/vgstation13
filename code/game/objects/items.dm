@@ -36,6 +36,7 @@
 	var/slowdown = NO_SLOWDOWN // How much each piece of clothing is slowing you down. Works as a MULTIPLIER, i.e. 0.8 slowdown makes you go 20% faster, 1.5 slowdown makes you go 50% slower.
 
 	var/canremove = TRUE //Mostly for Ninja code at this point but basically will not allow the item to be removed if set to 0. /N
+	var/cant_remove_msg = " cannot be taken off!"
 	var/cant_drop = FALSE //If 1, can't drop it from hands!
 	var/cant_drop_msg = " sticks to your hand!"
 
@@ -244,6 +245,7 @@
 				return
 		//canremove==0 means that object may not be removed. You can still wear it. This only applies to clothing. /N
 		if(!canremove)
+			to_chat(user, "<span class='notice'>\The [src][cant_remove_msg]</span>")
 			return
 
 		user.u_equip(src,FALSE)
@@ -517,7 +519,7 @@
 						return CANNOT_EQUIP
 				return CAN_EQUIP
 			if(slot_belt)
-				if(!H.w_uniform)
+				if(!H.w_uniform && !isbelt(src))
 					if(!disable_warning)
 						to_chat(H, "<span class='warning'>You need a jumpsuit before you can attach this [name].</span>")
 					return CANNOT_EQUIP
@@ -527,7 +529,7 @@
 					if(automatic)
 						if(H.check_for_open_slot(src))
 							return CANNOT_EQUIP
-					if(H.belt.canremove && !istype(H.belt, /obj/item/weapon/storage/belt))
+					if(H.belt.canremove)
 						return CAN_EQUIP_BUT_SLOT_TAKEN
 					else
 						return CANNOT_EQUIP
@@ -953,7 +955,7 @@
 			return FALSE
 		if (prob(50 - round(damage / 3)))
 			visible_message("<span class='borange'>[loc] blocks \the [blocked] with \the [src]!</span>")
-			if(isatommovable(blocked))
+			if(ismovable(blocked))
 				var/atom/movable/M = blocked
 				M.throwing = FALSE
 			return TRUE
@@ -1341,6 +1343,9 @@ var/global/list/image/blood_overlays = list()
 /obj/item/proc/on_mousedrop_to_inventory_slot()
 	return
 
+/obj/item/proc/stealthy(var/mob/living/carbon/human/H)
+	return H.isGoodPickpocket()
+
 /obj/item/proc/can_be_stored(var/obj/item/weapon/storage/S)
 	return TRUE
 
@@ -1408,6 +1413,9 @@ var/global/list/image/blood_overlays = list()
 	return
 
 /obj/item/proc/is_screwdriver(var/mob/user)
+	return FALSE
+
+/obj/item/proc/is_wrench(var/mob/user)
 	return FALSE
 
 //This proc will be called when the person holding or equipping it talks.

@@ -144,6 +144,11 @@ var/list/ai_list = list()
 			show_laws()
 			if (!ismalf(src))
 				to_chat(src, "<b>These laws may be changed by other players, or by you being the traitor.</b>")
+			if (mind && !stored_freqs)
+				to_chat(src, "The various frequencies used by the crew to communicate have been stored in your mind. Use the verb <i>Notes</i> to access them.")
+				spawn(1)
+					mind.store_memory("Frequencies list: <br/><b>Command:</b> [COMM_FREQ] <br/> <b>Security:</b> [SEC_FREQ] <br/> <b>Medical:</b> [MED_FREQ] <br/> <b>Science:</b> [SCI_FREQ] <br/> <b>Engineering:</b> [ENG_FREQ] <br/> <b>Service:</b> [SER_FREQ] <b>Cargo:</b> [SUP_FREQ]<br/> <b>AI private:</b> [AIPRIV_FREQ]<br/>")
+				stored_freqs = 1
 
 			job = "AI"
 	ai_list += src
@@ -237,6 +242,7 @@ var/list/ai_list = list()
 		"Girl Malf" = "ai-girl-malf",
 		"Girl" = "ai-girl",
 		"Glitchman" = "ai-glitchman",
+		"Gondola" = "ai-gondola",
 		"Goon" = "ai-goon",
 		"Green" = "ai-wierd",
 		"Hades" = "ai-hades",
@@ -269,6 +275,7 @@ var/list/ai_list = list()
 		"Triumvirate Static" = "ai-triumvirate-malf",
 		"Triumvirate" = "ai-triumvirate",
 		"Wasp" = "ai-wasp",
+		"Xerxes" = "ai-xerxes",
 		"Yes Man" = "yes-man",
 	)
 	var/selected = input("Select an icon!", "AI", null, null) as null|anything in possible_icon_states
@@ -457,9 +464,11 @@ var/list/ai_list = list()
 			else
 				to_chat(src, "<span class='notice'>Unable to locate the holopad.</span>")
 
+	#ifndef DISABLE_VOX
 	if(href_list["say_word"])
 		play_vox_word(href_list["say_word"], vox_voice, null, src)
 		return
+	#endif
 
 	if(href_list["track"])
 		var/mob/target = locate(href_list["track"]) in mob_list
@@ -492,6 +501,7 @@ var/list/ai_list = list()
 			A.open_nearest_door(target)
 		return
 
+	#ifndef DISABLE_VOX
 	// set_voice=(fem|mas) - Sets VOX voicepack.
 	if(href_list["set_voice"])
 		// Never trust the client.
@@ -510,6 +520,7 @@ var/list/ai_list = list()
 		if(announcement_checks())
 			play_announcement(href_list["play_announcement"])
 		return
+	#endif
 
 /mob/living/silicon/ai/bullet_act(var/obj/item/projectile/Proj)
 	..(Proj)
@@ -833,7 +844,7 @@ var/list/ai_list = list()
 
 
 /mob/living/silicon/ai/attackby(obj/item/weapon/W as obj, mob/user as mob)
-	if(iswrench(W))
+	if(W.is_wrench(user))
 		if(anchored)
 			user.visible_message("<span class='notice'>\The [user] starts to unbolt \the [src] from the plating...</span>")
 			if(!do_after(user, src,40))

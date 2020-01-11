@@ -186,6 +186,7 @@ var/global/num_vending_terminals = 1
 			newpack.product_records = product_records
 			newpack.hidden_records = hidden_records
 			newpack.coin_records = coin_records
+			newpack.targetvendomat = src.type
 
 	if(coinbox)
 		coinbox.forceMove(get_turf(src))
@@ -220,6 +221,11 @@ var/global/num_vending_terminals = 1
 		if(!anchored)
 			to_chat(user, "<span class='warning'>You need to anchor the vending machine before you can refill it.</span>")
 			return
+		if(P.targetvendomat != type)
+			var/list/any_records = get_all_records()
+			if(any_records.len)
+				to_chat(user, "<span class='warning'>That vending machine is neither empty nor a matching type.</span>")
+				return
 		if(!pack)
 			if(is_being_filled)
 				to_chat(user, "<span class='warning'>\The [src] is already in use!</span>")
@@ -256,7 +262,7 @@ var/global/num_vending_terminals = 1
 				is_being_filled = FALSE
 				P.in_use = FALSE
 		else
-			if(istype(P,pack))
+			if(P.targetvendomat == type)
 				if(is_being_filled)
 					to_chat(user, "<span class='warning'>\The [src] is already in use!</span>")
 					return
@@ -370,13 +376,17 @@ var/global/num_vending_terminals = 1
 			R.product_name = initial(initializer.name)
 		R.subcategory = initial(initializer.vending_cat)
 
-/obj/machinery/vending/proc/get_item_by_type(var/this_type)
+/obj/machinery/vending/proc/get_all_records()
 	var/list/datum_products = list()
 	datum_products |= hidden_records
 	datum_products |= coin_records
 	datum_products |= voucher_records
 	datum_products |= holiday_records
 	datum_products |= product_records
+	return datum_products
+
+/obj/machinery/vending/proc/get_item_by_type(var/this_type)
+	var/list/datum_products = get_all_records()
 	for(var/datum/data/vending_product/product in datum_products)
 		if(product.product_path == this_type)
 			return product
@@ -433,7 +443,7 @@ var/global/num_vending_terminals = 1
 	return 1
 
 /obj/machinery/vending/attackby(obj/item/W, mob/user)
-	if(stat & (BROKEN) && !iswrench(W))
+	if(stat & (BROKEN) && !W.is_wrench(user))
 		if(istype(W, /obj/item/stack/sheet/glass/rglass))
 			var/obj/item/stack/sheet/glass/rglass/G = W
 			to_chat(user, "<span class='notice'>You replace the broken glass.</span>")
@@ -773,7 +783,7 @@ var/global/num_vending_terminals = 1
 	if (premium.len > 0)
 		dat += "<b>Coin slot:</b> [coin ? coin : "No coin inserted"] (<a href='byond://?src=\ref[src];remove_coin=1'>Remove</A>)<br><br>"
 
-	if (src.product_records.len == 0)
+	if (src.product_records.len == 0 && coin_records.len == 0)
 		dat += "<font color = 'red'>No products loaded!</font><br><br></TT>"
 	else
 		var/list/display_records = src.product_records.Copy()
@@ -1226,6 +1236,11 @@ var/global/num_vending_terminals = 1
 		/obj/item/weapon/reagent_containers/food/drinks/bottle/cognac = 5,
 		/obj/item/weapon/reagent_containers/food/drinks/bottle/kahlua = 5,
 		/obj/item/weapon/reagent_containers/food/drinks/bottle/sake = 5,
+		/obj/item/weapon/reagent_containers/food/drinks/bottle/triplesec = 5,
+		/obj/item/weapon/reagent_containers/food/drinks/bottle/bluecuracao = 5,
+		/obj/item/weapon/reagent_containers/food/drinks/bottle/bitters = 5,
+		/obj/item/weapon/reagent_containers/food/drinks/bottle/schnapps = 5,
+		/obj/item/weapon/reagent_containers/food/drinks/bottle/fireballwhisky = 5,
 		/obj/item/weapon/reagent_containers/food/drinks/beer = 6,
 		/obj/item/weapon/reagent_containers/food/drinks/ale = 6,
 		/obj/item/weapon/reagent_containers/food/drinks/bottle/orangejuice = 4,
@@ -1246,7 +1261,8 @@ var/global/num_vending_terminals = 1
 		/obj/item/weapon/reagent_containers/food/drinks/mug = 10
 		)
 	premium = list(
-		/obj/item/weapon/reagent_containers/food/drinks/bottle/pwine = 1
+		/obj/item/weapon/reagent_containers/food/drinks/bottle/pwine = 1,
+		/obj/item/weapon/reagent_containers/food/drinks/bottle/champagne = 1
 	)
 	product_slogans = list(
 		"I hope nobody asks me for a bloody cup o' tea...",
@@ -1942,6 +1958,7 @@ var/global/num_vending_terminals = 1
 		/obj/item/clothing/head/helmet/siren = 2,
 		/obj/item/clothing/head/helmet/police = 2,
 		/obj/item/clothing/under/police = 2,
+		/obj/item/device/modkit/fatsec_rig = 2
 		)
 	vouched = list(
 		/obj/item/ammo_storage/magazine/m380auto = 10,
@@ -2054,6 +2071,7 @@ var/global/num_vending_terminals = 1
 		/obj/item/seeds/cinnamomum = 3,
 		/obj/item/seeds/avocadoseed = 3,
 		/obj/item/seeds/pearseed = 3,
+		/obj/item/seeds/peanutseed = 3,
 		)//,/obj/item/seeds/synthmeatseed = 3)
 	contraband = list(
 		/obj/item/seeds/amanitamycelium = 2,
@@ -2128,36 +2146,28 @@ var/global/num_vending_terminals = 1
 		"Space-time bending hardware!"
 	)
 	products = list(
-		/obj/item/clothing/head/wizard = 5,
-		/obj/item/clothing/suit/wizrobe = 5,
-		/obj/item/clothing/head/wizard/red = 5,
-		/obj/item/clothing/suit/wizrobe/red = 5,
-		/obj/item/clothing/head/wizard/clown = 5,
-		/obj/item/clothing/suit/wizrobe/clown = 5,
-		/obj/item/clothing/mask/gas/clown_hat/wiz = 5,
-		/obj/item/clothing/head/wizard/marisa = 5,
-		/obj/item/clothing/suit/wizrobe/marisa = 5,
-		/obj/item/clothing/suit/wizrobe/magician = 5,
-		/obj/item/clothing/head/that/magic = 5,
-		/obj/item/clothing/head/wizard/necro = 5,
-		/obj/item/clothing/suit/wizrobe/necro = 5,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/wizard_robes = 5,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/red_wizrobes = 5,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/clown_wizrobes = 5,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/marisa_wiz = 5,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/hallowiz = 5,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/magician = 5,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/necromancer = 5,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/pharaoh = 5,
+		/obj/item/clothing/suit/storage/wintercoat/druid = 5,
 		/obj/item/clothing/head/wizard/magus = 5,
 		/obj/item/clothing/suit/wizrobe/magusred = 5,
 		/obj/item/clothing/suit/wizrobe/magusblue = 5,
 		/obj/item/clothing/head/wizard/amp = 5,
 		/obj/item/clothing/suit/wizrobe/psypurple = 5,
-		/obj/item/clothing/head/pharaoh = 5,
-		/obj/item/clothing/suit/wizrobe/pharaoh = 5,
+		/obj/item/clothing/shoes/sandal = 5,
 		/obj/item/clothing/shoes/sandal/marisa/leather = 5,
-		/obj/item/clothing/shoes/sandal = 10,
 		/obj/item/clothing/shoes/sandal/marisa = 5,
 		/obj/item/weapon/staff = 5,
 		/obj/item/weapon/staff/broom = 5,
 		/obj/item/clothing/glasses/monocle = 5,
 		/obj/item/weapon/storage/bag/wiz_cards/full = 1,
-		/obj/item/weapon/storage/bag/potion = 5,
-		/obj/item/clothing/suit/wizrobe/hallowiz = 5,
-		/obj/item/clothing/head/wizard/hallowiz = 5,
+		/obj/item/weapon/storage/bag/potion = 5
 		)
 	contraband = list(
 		/obj/item/weapon/reagent_containers/glass/bottle/wizarditis = 1,
@@ -2166,12 +2176,11 @@ var/global/num_vending_terminals = 1
 		/obj/item/clothing/back/magiccape = 1,
 		)
 	specials = list(
-		/obj/item/clothing/suit/wizrobe/hallowiz = HALLOWEEN,
-		/obj/item/clothing/head/wizard/hallowiz = HALLOWEEN,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/hallowiz = HALLOWEEN,
 		)
 
 	pack = /obj/structure/vendomatpack/magivend	//Who's laughing now? wizarditis doesn't do shit anyway. - Deity Link of 2014
-												//How about I make a foul of myself 5 years later? Wizarditis is now a proper symptom. - Deity Link of 2019
+												//How about I make a fool of myself 5 years later? Wizarditis is now a proper symptom. - Deity Link of 2019
 
 /obj/machinery/vending/dinnerware
 	name = "\improper Dinnerware"
@@ -2432,6 +2441,8 @@ var/global/num_vending_terminals = 1
 
 	pack = /obj/structure/vendomatpack/undefined
 
+#define AUTO_DROBE_DEFAULT_STOCK 5
+
 /obj/machinery/vending/autodrobe
 	name = "\improper AutoDrobe"
 	desc = "A vending machine containing costumes."
@@ -2447,25 +2458,34 @@ var/global/num_vending_terminals = 1
 	vend_delay = 15
 	vend_reply = "Thank you for using AutoDrobe!"
 	products = list(
-		/obj/item/clothing/suit/chickensuit = 3,
-		/obj/item/clothing/head/chicken = 3,
-		/obj/item/clothing/suit/monkeysuit = 3,
-		/obj/item/clothing/mask/gas/monkeymask = 3,
-		/obj/item/clothing/suit/xenos = 3,
-		/obj/item/clothing/head/xenos = 3,
-		/obj/item/clothing/under/gladiator = 3,
-		/obj/item/clothing/head/helmet/gladiator = 3,
-		/obj/item/clothing/under/gimmick/rank/captain/suit = 3,
-		/obj/item/clothing/head/flatcap = 3,
-		/obj/item/clothing/glasses/gglasses = 3,
-		/obj/item/clothing/shoes/jackboots = 3,
-		/obj/item/clothing/under/schoolgirl = 3,
-		/obj/item/clothing/shoes/kneesocks = 3,
-		/obj/item/clothing/head/kitty = 3,
-		/obj/item/clothing/under/blackskirt = 3,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/chickensuit = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/monkeysuit = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/xenosuit = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/gladiatorsuit = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/captaincasualoutfit = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/schoolgirloutfit = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/sovietoutfit = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/fakewizard = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/witch = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/marisa = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/mega/ = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/sexyclown = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/sexymime = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/clownpiece = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/jester = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/maid = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/liberty = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/aviator = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/proto = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/hastur = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/owl = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/pirateoutfit = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/lordadmiral = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/plaguedoctor = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/rotten = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/frank = AUTO_DROBE_DEFAULT_STOCK,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/mexican = AUTO_DROBE_DEFAULT_STOCK,
 		/obj/item/clothing/head/beret = 3,
-		/obj/item/clothing/suit/hastur = 3,
-		/obj/item/clothing/head/hasturhood = 3,
 		/obj/item/clothing/suit/wcoat = 3,
 		/obj/item/clothing/under/suit_jacket = 3,
 		/obj/item/clothing/head/that = 3,
@@ -2479,86 +2499,31 @@ var/global/num_vending_terminals = 1
 		/obj/item/weapon/cane = 3,
 		/obj/item/clothing/under/sl_suit = 3,
 		/obj/item/clothing/mask/fakemoustache = 3,
-		/obj/item/clothing/suit/bio_suit/plaguedoctorsuit = 3,
-		/obj/item/clothing/head/plaguedoctorhat = 3,
-		/obj/item/clothing/mask/gas/plaguedoctor = 3,
-		/obj/item/clothing/under/owl = 3,
-		/obj/item/clothing/mask/gas/owl_mask = 3,
 		/obj/item/clothing/suit/apron = 3,
 		/obj/item/clothing/under/waiter = 3,
-		/obj/item/clothing/under/pirate = 3,
-		/obj/item/clothing/glasses/eyepatch = 3,
-		/obj/item/clothing/suit/pirate = 3,
-		/obj/item/clothing/head/pirate = 3,
-		/obj/item/clothing/head/bandana = 3,
-		/obj/item/clothing/head/bandana = 3,
-		/obj/item/clothing/under/soviet = 3,
-		/obj/item/clothing/head/ushanka = 3,
 		/obj/item/clothing/suit/imperium_monk = 3,
 		/obj/item/clothing/mask/gas/cyborg = 3,
 		/obj/item/clothing/suit/holidaypriest = 3,
-		/obj/item/clothing/head/wizard/marisa/fake = 3,
-		/obj/item/clothing/suit/wizrobe/marisa/fake = 3,
 		/obj/item/clothing/under/sundress = 3,
-		/obj/item/clothing/head/witchwig = 3,
-		/obj/item/weapon/staff/broom = 3,
-		/obj/item/clothing/suit/wizrobe/fake = 3,
-		/obj/item/clothing/head/wizard/fake = 3,
-		/obj/item/weapon/staff = 3,
-		/obj/item/clothing/mask/gas/sexyclown = 3,
-		/obj/item/clothing/under/sexyclown = 3,
-		/obj/item/clothing/mask/gas/sexymime = 3,
-		/obj/item/clothing/under/sexymime = 3,
 		/obj/item/clothing/suit/apron/overalls = 3,
 		/obj/item/clothing/head/rabbitears = 3,
-		/obj/item/clothing/head/lordadmiralhat = 3,
-		/obj/item/clothing/suit/lordadmiral = 3,
 		/obj/item/clothing/suit/doshjacket = 3,
-		/obj/item/clothing/under/jester = 3,
-		/obj/item/clothing/head/jesterhat = 3,
-		/obj/item/clothing/shoes/jestershoes = 3,
 		/obj/item/clothing/suit/kefkarobe = 3,
-		/obj/item/clothing/head/helmet/aviatorhelmet = 3,
-		/obj/item/clothing/shoes/aviatorboots = 3,
-		/obj/item/clothing/under/aviatoruniform = 3,
-		/obj/item/clothing/head/libertyhat = 3,
-		/obj/item/clothing/suit/libertycoat = 3,
-		/obj/item/clothing/under/libertyshirt = 3,
-		/obj/item/clothing/shoes/libertyshoes = 3,
-		/obj/item/clothing/head/helmet/megahelmet = 3,
-		/obj/item/clothing/under/mega = 3,
-		/obj/item/clothing/gloves/megagloves = 3,
-		/obj/item/clothing/shoes/megaboots =3,
-		/obj/item/clothing/head/helmet/protohelmet = 3,
-		/obj/item/clothing/under/proto =3,
-		/obj/item/clothing/gloves/protogloves =3,
-		/obj/item/clothing/shoes/protoboots =3,
 		/obj/item/clothing/under/roll = 3,
-		/obj/item/clothing/head/maidhat =3,
-		/obj/item/clothing/under/maid = 3,
-		/obj/item/clothing/suit/maidapron = 3,
 		/obj/item/clothing/head/mitre = 3,
-		/obj/item/clothing/under/clownpiece = 3,
-		/obj/item/clothing/suit/clownpiece = 3,
-		/obj/item/clothing/head/clownpiece = 3,
 		/obj/item/clothing/head/cowboy = 3,
-		/obj/item/clothing/under/rottensuit = 5,
-		/obj/item/clothing/shoes/rottenshoes = 5,
-		/obj/item/clothing/under/franksuit = 3,
-		/obj/item/clothing/gloves/frankgloves = 3,
-		/obj/item/clothing/shoes/frankshoes =3,
 		/obj/item/clothing/suit/kimono/sakura = 3,
 		/obj/item/clothing/head/widehat_red = 3,
-		/obj/item/clothing/suit/red_suit = 3,
-		/obj/item/clothing/head/sombrero = 3,
-		/obj/item/clothing/suit/poncho = 3
+		/obj/item/clothing/suit/red_suit = 3
 		) //Pretty much everything that had a chance to spawn.
 	contraband = list(
+		/obj/item/weapon/storage/box/smartbox/clothing_box/clownpsyche = AUTO_DROBE_DEFAULT_STOCK,
 		/obj/item/clothing/suit/cardborg = 3,
 		/obj/item/clothing/head/cardborg = 3,
 		/obj/item/clothing/suit/judgerobe = 3,
 		/obj/item/clothing/head/powdered_wig = 3,
-		/obj/item/toy/gun = 3
+		/obj/item/toy/gun = 3,
+		/obj/item/weapon/glue/temp_glue = 1
 		)
 	premium = list(
 		/obj/item/clothing/suit/hgpirate = 3,
@@ -2570,10 +2535,7 @@ var/global/num_vending_terminals = 1
 		/obj/item/weapon/shield/riot/roman = 3,
 		/obj/item/clothing/under/stilsuit = 3,
 		/obj/item/clothing/head/helmet/breakhelmet = 3,
-		/obj/item/clothing/head/helmet/joehelmet = 3,
-		/obj/item/clothing/under/joe = 3,
-		/obj/item/clothing/gloves/joegloves = 3,
-		/obj/item/clothing/shoes/joeboots =3,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/joe = AUTO_DROBE_DEFAULT_STOCK,
 		/obj/item/weapon/shield/riot/proto = 3,
 		/obj/item/weapon/shield/riot/joe = 3,
 		/obj/item/clothing/under/darkholme = 3,
@@ -2581,9 +2543,7 @@ var/global/num_vending_terminals = 1
 		/obj/item/clothing/head/that/magic = 3,
 		/obj/item/clothing/suit/kimono = 3,
 		/obj/item/clothing/gloves/white = 3,
-		/obj/item/clothing/mask/gas/lola = 3,
-		/obj/item/clothing/under/lola = 3,
-		/obj/item/clothing/shoes/clown_shoes/lola = 3,
+		/obj/item/weapon/storage/box/smartbox/clothing_box/lola = AUTO_DROBE_DEFAULT_STOCK,
 		/obj/item/clothing/under/clownsuit = 3
 		)
 
@@ -2970,6 +2930,9 @@ var/global/num_vending_terminals = 1
 		/obj/item/weapon/reagent_containers/food/drinks/soda_cans/sportdrink = 50,
 		/obj/item/weapon/reagent_containers/food/drinks/groansbanned = 50,
 		)
+	premium = list(
+		/obj/item/weapon/reagent_containers/food/drinks/soda_cans/roentgen_energy = 2,
+		)
 	contraband = list(
 		/obj/item/weapon/reagent_containers/food/drinks/groansbanned = 10,
 		)
@@ -3108,18 +3071,18 @@ var/global/num_vending_terminals = 1
 		/obj/item/weapon/card/id/vox/extra = 100,
 		/obj/item/weapon/stamp/trader = 20,
 		/obj/item/weapon/capsule = 10,
-		/obj/item/weapon/implantcase/peace = 100,
-		/obj/item/vaporizer = 100,
-		/obj/item/weapon/storage/trader_chemistry = 200,
-		/obj/structure/closet/secure_closet/wonderful = 350,
+		/obj/item/weapon/implantcase/peace = 10,
+		/obj/item/vaporizer = 10,
+		/obj/item/weapon/storage/trader_chemistry = 50,
+		/obj/structure/closet/secure_closet/wonderful = 150,
 		/obj/item/weapon/disk/shuttle_coords/vault/mecha_graveyard = 100,
-		/obj/item/weapon/reagent_containers/glass/beaker/bluespace = 100,
+		/obj/item/weapon/reagent_containers/glass/beaker/bluespace = 50,
 		/obj/item/weapon/storage/bluespace_crystal = 150,
-		/obj/item/weapon/reagent_containers/food/snacks/borer_egg = 100,
+		/obj/item/weapon/reagent_containers/food/snacks/borer_egg = 50,
 		/obj/item/clothing/shoes/clown_shoes/advanced = 50,
-		/obj/item/fish_eggs/seadevil = 50,
-		/obj/machinery/power/antiquesynth = 350,
-		/obj/structure/closet/crate/chest/alcatraz = 300,
+		/obj/item/fish_eggs/seadevil = 10,
+		/obj/machinery/power/antiquesynth = 150,
+		/obj/structure/closet/crate/chest/alcatraz = 150,
 		/obj/structure/largecrate/secure = 100,
 		/obj/structure/largecrate/secure/magmaw = 100,
 		/obj/structure/largecrate/secure/frankenstein = 100,
@@ -3129,9 +3092,9 @@ var/global/num_vending_terminals = 1
 		/obj/item/stack/sheet/brass/bigstack = 50,
 		/obj/item/stack/sheet/ralloy/bigstack = 50,
 		/obj/item/device/vampirehead = 150,
-		/obj/item/key/security/spare = 50,
-		/obj/item/weapon/depocket_wand = 100,
-		/obj/item/weapon/ram_kit = 200,
+		/obj/item/key/security/spare = 10,
+		/obj/item/weapon/depocket_wand = 50,
+		/obj/item/weapon/ram_kit = 100,
 		)
 
 /obj/machinery/vending/trader/New()

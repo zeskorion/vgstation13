@@ -229,7 +229,7 @@
 			if (istype(src,/mob/living/carbon/human) && src:w_uniform)
 				var/mob/living/carbon/human/H = src
 				H.w_uniform.add_fingerprint(M)
-			src.sleeping = max(0,src.sleeping-5)
+			src.sleeping = max(0,src.sleeping-10)
 			if(src.sleeping == 0)
 				src.resting = 0
 			AdjustParalysis(-3)
@@ -462,8 +462,7 @@
 		B.host_brain.real_name = "host brain"
 
 	//reset name if the borer changed it
-	if(name != real_name)
-		name = real_name
+	fully_replace_character_name(null, B.host_name)
 
 	verbs -= /mob/living/carbon/proc/release_control
 	verbs -= /mob/living/carbon/proc/punish_host
@@ -622,7 +621,7 @@
 					E.on_touch(src, toucher, touched, touch_type)
 
 /mob/living/carbon/proc/check_handcuffs()
-	return handcuffed
+	return handcuffed || istype(locked_to, /obj/structure/bed/nest)
 
 /mob/living/carbon/proc/get_lowest_body_alpha()
 	if(!body_alphas.len)
@@ -712,7 +711,7 @@
 
 		if(TURF_WET_LUBE)
 			step(src, dir)
-			if (!Slip(stun_amount = 10, weaken_amount = 3, slip_on_walking = TRUE, overlay_type = TURF_WET_LUBE, slip_on_magbooties = TRUE))
+			if (!Slip(stun_amount = 5, weaken_amount = 3, slip_on_walking = TRUE, overlay_type = TURF_WET_LUBE, slip_on_magbooties = TRUE))
 				return FALSE
 			for (var/i = 1 to 4)
 				spawn(i)

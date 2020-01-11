@@ -157,7 +157,7 @@ Turf and target are seperate in case you want to teleport some distance from a t
 
 //Ensure the frequency is within bounds of what it should be sending/recieving at
 /proc/sanitize_frequency(var/f)
-	f = Clamp(round(f), 1201, 1599) // 120.1, 159.9
+	f = clamp(round(f), 1201, 1599) // 120.1, 159.9
 
 	if ((f % 2) == 0) //Ensure the last digit is an odd number
 		f += 1
@@ -249,14 +249,14 @@ Turf and target are seperate in case you want to teleport some distance from a t
 
 //Generalised helper proc for letting mobs rename themselves. Used to be clname() and ainame()
 //Last modified by Carn
-/mob/proc/rename_self(var/role, var/allow_numbers=0)
+/mob/proc/rename_self(var/role, var/allow_numbers=0, var/namepick_message = "You are a [role]. Would you like to change your name to something else?")
 	spawn(0)
 		var/oldname = real_name
 
 		var/newname
 
 		for(var/i=1,i<=3,i++)	//we get 3 attempts to pick a suitable name.
-			newname = input(src,"You are a [role]. Would you like to change your name to something else?", "Name change",oldname) as text
+			newname = input(src,namepick_message, "Name change",oldname) as text
 			newname = reject_bad_name(newname,allow_numbers)	//returns null if the name doesn't meet some basic requirements. Tidies up a few other things like bad-characters.
 
 			for(var/mob/living/M in player_list)
@@ -267,7 +267,7 @@ Turf and target are seperate in case you want to teleport some distance from a t
 					break
 			if(newname)
 				break	//That's a suitable name!
-			to_chat(src, "Sorry, that [role]-name wasn't appropriate, please try another. It's possibly too long/short, has bad characters or is already taken.")
+			to_chat(src, "Sorry, that name wasn't appropriate, please try another. It's possibly too long/short, has bad characters or is already taken.")
 
 		if(!newname)	//we'll stick with the oldname then
 			return
@@ -598,8 +598,8 @@ Turf and target are seperate in case you want to teleport some distance from a t
 // returns turf relative to A offset in dx and dy tiles
 // bound to map limits
 /proc/get_offset_target_turf(atom/A, dx, dy)
-	var/x = Clamp(A.x + dx, 1, world.maxx)
-	var/y = Clamp(A.y + dy, 1, world.maxy)
+	var/x = clamp(A.x + dx, 1, world.maxx)
+	var/y = clamp(A.y + dy, 1, world.maxy)
 
 	return locate(x, y, A.z)
 
@@ -1371,6 +1371,9 @@ proc/rotate_icon(file, state, step = 1, aa = FALSE)
 
 /mob/dview/send_to_future(var/duration)
 	return
+
+/mob/dview/Destroy()
+    CRASH("Somebody called qdel on dview. That's extremely rude.")
 
 //Gets the Z level datum for this atom's Z level
 /proc/get_z_level(var/atom/A)
